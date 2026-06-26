@@ -1,0 +1,4 @@
+build/
+MatchThree.app/
+*.swiftpkg
+.DS_Store
