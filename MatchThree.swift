@@ -314,7 +314,7 @@ class GameBoard: ObservableObject {
         let kinds = availableKinds
         grid = Array(repeating: Array(repeating: nil, count: Self.cols), count: Self.rows)
         for r in 0..<Self.rows { for c in 0..<Self.cols { grid[r][c] = Gem(kind: kinds.randomElement()!) } }
-        selectedPosition = nil; matches = []; score = 0; combo = 0; isProcessing = false
+        selectedPosition = nil; matches = []; score = 0; combo = 0; isProcessing = false; suppressRainbowGeneration = false
         particles = []; flashRings = []; scorePops = []
         failedSwaps = 0; timeRemaining = 10; lastTimeDisplay = 10; gameOver = false; gameOverReason = ""
         tickFrame = 0
@@ -345,7 +345,7 @@ class GameBoard: ObservableObject {
             let rainbowPos = isRainbowA ? a : b
             let otherKind = (isRainbowA ? vb : va)?.kind
             guard let targetKind = otherKind else {
-                isProcessing = false
+                isProcessing = false; suppressRainbowGeneration = false
                 return
             }
             // Swap them so rainbow moves to other position
@@ -400,7 +400,7 @@ class GameBoard: ObservableObject {
                 if self.gameMode == .ranked && self.failedSwaps >= 5 {
                     self.gameOver = true
                     self.gameOverReason = "5次无效交换"
-                    self.isProcessing = false
+                    self.isProcessing = false; self.suppressRainbowGeneration = false
                     HighScoreManager.save(self.score, for: self.gameMode)
                     SoundEngine.shared.playGameOver()
                     HapticEngine.heavy()
@@ -410,7 +410,7 @@ class GameBoard: ObservableObject {
                 self.grid[a.row][a.col] = va; self.grid[b.row][b.col] = vb
                 self.swapPlacedGemsVisual(a, b)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                    self?.isProcessing = false
+                    self?.isProcessing = false; self?.suppressRainbowGeneration = false
                 }
             }
         }
@@ -928,7 +928,7 @@ class GameBoard: ObservableObject {
             } while !self.hasValidMoves() && attempts < 50
             self.rebuildPlacedGems()
             self.deadlockMessage = nil
-            self.isProcessing = false
+            self.isProcessing = false; self.suppressRainbowGeneration = false
         }
     }
 
