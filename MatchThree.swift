@@ -508,6 +508,16 @@ class GameBoard: ObservableObject {
                 HapticEngine.heavy()
             }
         }
+        // Rainbow gem is visible while everything else clears — exclude from matched animation
+        if let rp = rainbowProtected {
+            var filtered: [MatchGroup] = []
+            for g in matches {
+                var pos = g.positions
+                if pos.contains(rp) { pos.remove(rp) }
+                filtered.append(MatchGroup(positions: pos, kind: g.kind))
+            }
+            matches = filtered
+        }
 
         // Cross: intersection of H and V match groups
         if groups.count >= 2 {
