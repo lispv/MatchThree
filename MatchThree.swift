@@ -1,5 +1,14 @@
 import SwiftUI
 import AVFoundation
+import AppKit
+
+// MARK: - Haptic Engine
+
+struct HapticEngine {
+    static func tap()    { NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .default) }
+    static func click()  { NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default) }
+    static func heavy()  { NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default) }
+}
 
 // MARK: - Sound Engine (procedural, no audio files)
 
@@ -303,6 +312,7 @@ class GameBoard: ObservableObject {
 
         // Sound
         SoundEngine.shared.playSwap()
+        HapticEngine.tap()
 
         // Animate visual swap
         swapPlacedGemsVisual(a, b)
@@ -322,6 +332,7 @@ class GameBoard: ObservableObject {
                     self.gameOverReason = "5次无效交换"
                     self.isProcessing = false
                     SoundEngine.shared.playGameOver()
+                    HapticEngine.heavy()
                     return
                 }
                 // Animate back
@@ -384,6 +395,7 @@ class GameBoard: ObservableObject {
 
         // Sound
         SoundEngine.shared.playMatch(combo: combo)
+        HapticEngine.click()
 
         matches = groups
 
@@ -411,6 +423,7 @@ class GameBoard: ObservableObject {
                 let by = CGFloat(cr) * step + cellPx/2 + 6
                 bombRings.append((bx, by))
                 SoundEngine.shared.playBombClear()
+                HapticEngine.heavy()
             }
         }
 
@@ -426,6 +439,7 @@ class GameBoard: ObservableObject {
                             crossLines.append((pos.row, pos.col))
                         }
                         SoundEngine.shared.playCrossClear()
+                        HapticEngine.heavy()
                     }
                 }
             }
@@ -574,6 +588,7 @@ class GameBoard: ObservableObject {
     private func triggerNuke(cx: CGFloat, cy: CGFloat, matchCount: Int) {
 
         SoundEngine.shared.playExplosion()
+        HapticEngine.heavy()
         flashRings.append(FlashRing(x: cx, y: cy, color: .white, lineWidth: 16))
         flashRings.append(FlashRing(x: cx, y: cy, color: .yellow, lineWidth: 10))
         flashRings.append(FlashRing(x: cx, y: cy, color: .orange, lineWidth: 6))
