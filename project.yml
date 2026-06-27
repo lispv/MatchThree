@@ -2,7 +2,7 @@ name: MatchThree
 options:
   bundleIdPrefix: com.matchthree
   deploymentTarget:
-    iOS: "17.0"
+    macOS: "14.0"
   xcodeVersion: "16.0"
 
 settings:
@@ -12,11 +12,9 @@ settings:
 targets:
   MatchThree:
     type: application
-    platform: iOS
+    platform: macOS
     sources:
-      - path: MatchThree
+      - path: MatchThree.swift
     settings:
       base:
-        INFOPLIST_FILE: MatchThree/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.matchthree.app
-        GENERATE_INFOPLIST_FILE: "NO"

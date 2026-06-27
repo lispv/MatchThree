@@ -2,3 +2,7 @@ build/
 MatchThree.app/
 *.swiftpkg
 .DS_Store
+*.xcodeproj/xcuserdata/
+DerivedData/
+.build/
+*.hermesbak.*

@@ -39,7 +39,7 @@ struct MatchGroup {
 // MARK: - Particle
 
 enum ParticleShape: CaseIterable {
-    case circle, star, heart, sparkle, burst, rect
+    case circle, burst, rect
 }
 
 // MARK: - Effect style
@@ -140,7 +140,7 @@ struct BgPetal: Identifiable {
 @MainActor
 class GameBoard: ObservableObject {
     static let rows = 8, cols = 8
-    static let maxKinds = 7
+    static let maxKinds = 8
 
     @Published var grid: [[Gem?]]
     @Published var score = 0
@@ -152,7 +152,6 @@ class GameBoard: ObservableObject {
     @Published var flashRings: [FlashRing] = []
     @Published var scorePops: [ScorePop] = []
     @Published var bgPetals: [BgPetal] = []
-    @Published var boardShake = false
     @Published var deadlockMessage: String? = nil
     @Published var nuclearFlash = false
     @Published var missile: Missile? = nil
@@ -167,6 +166,8 @@ class GameBoard: ObservableObject {
     /// Flat list of all gems with positions, for smooth animation
     @Published var placedGems: [PlacedGem] = []
     var cellPx: CGFloat = 44  // set by view for particle positioning
+    var windowWidth: CGFloat = 500
+    var windowHeight: CGFloat = 700
 
     var activeKinds: Int { min(4 + (score / 300), Self.maxKinds) }
 
@@ -192,7 +193,8 @@ class GameBoard: ObservableObject {
         for r in 0..<Self.rows { for c in 0..<Self.cols { grid[r][c] = Gem(kind: kinds.randomElement()!) } }
         selectedPosition = nil; matches = []; score = 0; combo = 0; isProcessing = false
         particles = []; flashRings = []; scorePops = []
-        failedSwaps = 0; timeRemaining = 10; gameOver = false; gameOverReason = ""
+        failedSwaps = 0; timeRemaining = 10; lastTimeDisplay = 10; gameOver = false; gameOverReason = ""
+        tickFrame = 0
         while let mg = findMatches(), !mg.isEmpty { removeGems(mg); gravity(); spawn(kinds) }
         rebuildPlacedGems()
     }
@@ -294,11 +296,7 @@ class GameBoard: ObservableObject {
 
         matches = groups
 
-        // Score pop
-        let text = combo > 1 ? "+\(base + bonus)  x\(combo)" : "+\(base)"
-        scorePops.append(ScorePop(position: CGPoint(x: 200, y: 40), text: text))
-
-        // 🚀 Launch missile toward match centroid, nuke on impact
+        // Match centroid (for score pop, missile, nuke)
         let gap: CGFloat = 2
         let step = cellPx + gap
 
@@ -306,6 +304,10 @@ class GameBoard: ObservableObject {
         for g in groups { for p in g.positions { totalRow += CGFloat(p.row); totalCol += CGFloat(p.col); totalCount += 1 } }
         let tx = (totalCol / totalCount) * step + cellPx / 2 + 6
         let ty = (totalRow / totalCount) * step + cellPx / 2 + 6
+
+        // Score pop at match centroid
+        let text = combo > 1 ? "+\(base + bonus)  x\(combo)" : "+\(base)"
+        scorePops.append(ScorePop(position: CGPoint(x: tx, y: ty), text: text))
 
         // Store match context for delayed nuke
         let nukeTarget = (cx: tx, cy: ty, count: Int(totalCount))
@@ -356,10 +358,11 @@ class GameBoard: ObservableObject {
         }
         removeGems(groups)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.gravity()
+            guard let self = self else { return }
+            let gravityDists = self.gravity()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                 guard let self = self else { return }
-                self.spawn(self.availableKinds)
+                self.spawn(self.availableKinds, mergeDists: gravityDists)
                 self.matches = []
                 if let next = self.findMatches(), !next.isEmpty { self.processMatches(next) }
                 else { self.isProcessing = false; self.combo = 0; self.checkAndFixDeadlock() }
@@ -541,7 +544,8 @@ class GameBoard: ObservableObject {
         for g in groups { for p in g.positions { grid[p.row][p.col] = nil } }
     }
 
-    private func gravity() {
+    @discardableResult
+    private func gravity() -> [UUID: Int] {
         // Track gem positions before gravity
         var oldRows: [UUID: Int] = [:]
         for r in 0..<Self.rows {
@@ -565,10 +569,11 @@ class GameBoard: ObservableObject {
             }
         }
         rebuildPlacedGems(dropDistances: dists)
+        return dists
     }
 
-    private func spawn(_ kinds: [GemKind]) {
-        var dists: [UUID: Int] = [:]
+    private func spawn(_ kinds: [GemKind], mergeDists: [UUID: Int] = [:]) {
+        var dists = mergeDists
         for c in 0..<Self.cols {
             var emptyCount = 0
             // Count empty cells from top for each position
@@ -641,14 +646,20 @@ class GameBoard: ObservableObject {
     }
 
     // Particle tick (called from view's TimelineView)
+    var tickFrame = 0
+    var lastTimeDisplay: Double = 10
     func tickParticles(dt: TimeInterval) {
-        // Ranked countdown
+        tickFrame += 1
+
+        // Ranked countdown (throttled display update)
         if gameMode == .ranked && !gameOver && !isProcessing {
             timeRemaining -= dt
+            if tickFrame % 6 == 0 { lastTimeDisplay = timeRemaining } // update display every ~0.1s
             if timeRemaining <= 0 {
                 gameOver = true
                 gameOverReason = "超时"
                 timeRemaining = 0
+                lastTimeDisplay = 0
             }
         }
 
@@ -810,32 +821,6 @@ struct ParticleCanvas: View {
         switch shape {
         case .circle:
             path.addEllipse(in: CGRect(x: center.x - r, y: center.y - r, width: r*2, height: r*2))
-        case .star:
-            let points = 5
-            for i in 0..<points*2 {
-                let a = Double(i) * .pi / Double(points) - .pi/2 + rotation
-                let rad = i % 2 == 0 ? r : r * 0.4
-                let x = center.x + cos(a) * rad
-                let y = center.y + sin(a) * rad
-                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                else { path.addLine(to: CGPoint(x: x, y: y)) }
-            }
-            path.closeSubpath()
-        case .heart:
-            let cx = center.x; let cy = center.y
-            path.move(to: CGPoint(x: cx, y: cy + r*0.8))
-            path.addCurve(to: CGPoint(x: cx, y: cy - r*0.3),
-                          control1: CGPoint(x: cx - r*1.2, y: cy + r*0.8),
-                          control2: CGPoint(x: cx, y: cy - r*1.0))
-            path.addCurve(to: CGPoint(x: cx, y: cy + r*0.8),
-                          control1: CGPoint(x: cx, y: cy - r*1.0),
-                          control2: CGPoint(x: cx + r*1.2, y: cy + r*0.8))
-        case .sparkle:
-            for i in 0..<4 {
-                let a = Double(i) * .pi/2 + rotation
-                path.move(to: CGPoint(x: center.x, y: center.y))
-                path.addLine(to: CGPoint(x: center.x + cos(a)*r, y: center.y + sin(a)*r))
-            }
         case .burst:
             for i in 0..<8 {
                 let a = Double(i) * .pi/4 + rotation
@@ -950,6 +935,7 @@ struct ScorePopOverlay: View {
                     .shadow(color: .orange.opacity(0.6), radius: 8, x: 0, y: 0)
                     .opacity(pop.opacity)
                     .offset(y: pop.offset)
+                    .position(pop.position)
             }
         }
         .allowsHitTesting(false)
@@ -1030,6 +1016,8 @@ struct ContentView: View {
             GeometryReader { geo in
                 let cellSize = min(geo.size.width, geo.size.height - 280) / CGFloat(GameBoard.cols) - 4
                 let _ = { board.cellPx = cellSize }()
+                let _ = { board.windowWidth = geo.size.width }()
+                let _ = { board.windowHeight = geo.size.height }()
 
                 VStack(spacing: 4) {
                     // Header
@@ -1098,7 +1086,7 @@ struct ContentView: View {
                             Label("失败 \(board.failedSwaps)/5", systemImage: "xmark.circle")
                                 .foregroundColor(board.failedSwaps >= 3 ? .red : board.theme.textColor)
                             Spacer()
-                            Label(String(format: "%.1fs", board.timeRemaining), systemImage: "timer")
+                            Label(String(format: "%.1fs", board.lastTimeDisplay), systemImage: "timer")
                                 .foregroundColor(board.timeRemaining < 3 ? .red : board.theme.scoreColor)
                         }
                         .font(.system(size: 14, weight: .semibold))
@@ -1181,10 +1169,10 @@ struct ContentView: View {
                         ParticleCanvas(particles: board.particles, flashRings: board.flashRings, missile: board.missile)
                             .allowsHitTesting(false)
                     )
-
-                    // Score pop
-                    ScorePopOverlay(pops: board.scorePops)
-                        .frame(height: 40)
+                    .overlay(
+                        ScorePopOverlay(pops: board.scorePops)
+                            .allowsHitTesting(false)
+                    )
 
                     // Button
                     Button {
@@ -1209,26 +1197,8 @@ struct ContentView: View {
         .onReceive(Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()) { _ in
             board.tickParticles(dt: 0.016)
             board.tickScorePops()
+            if board.tickFrame % 3 == 0 { board.tickBackground(dt: 0.05, width: board.windowWidth, height: board.windowHeight) }
         }
-        .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { _ in
-            board.tickBackground(dt: 0.05, width: 500, height: 700)
-        }
-    }
-}
-
-// MARK: - Board shake effect
-
-struct ShakeEffect: GeometryEffect {
-    var shakes: Int
-    var amplitude: CGFloat = 3
-    var animatableData: CGFloat {
-        get { CGFloat(shakes) }
-        set { shakes = Int(newValue) }
-    }
-    func effectValue(size: CGSize) -> ProjectionTransform {
-        guard shakes > 0 else { return ProjectionTransform(.identity) }
-        let xOff = CGFloat(shakes) * amplitude * sin(CGFloat(shakes) * 8)
-        return ProjectionTransform(CGAffineTransform(translationX: xOff, y: 0))
     }
 }
 
