@@ -101,14 +101,14 @@ class SoundEngine {
     func playBombClear() {
         playTone(frequency: 40, duration: 0.4, wave: .noise, volume: 0.45)
         playTone(frequency: 80, duration: 0.3, wave: .sine, volume: 0.35, delay: 0.05)
-        playTone(frequency: 150, duration: 0.25, wave: .saw, volume: 0.2, delay: 0.1)
+        playTone(frequency: 110, duration: 0.2, wave: .sine, volume: 0.22, delay: 0.1)
     }
 
     func playCrossClear() {
         playTone(frequency: 600, duration: 0.1, wave: .sine, volume: 0.3)
         playTone(frequency: 900, duration: 0.08, wave: .sine, volume: 0.25, delay: 0.05)
         playTone(frequency: 1200, duration: 0.06, wave: .sine, volume: 0.2, delay: 0.1)
-        playTone(frequency: 300, duration: 0.2, wave: .saw, volume: 0.15, delay: 0.08)
+        playTone(frequency: 440, duration: 0.15, wave: .sine, volume: 0.15, delay: 0.08)
     }
 }
 
