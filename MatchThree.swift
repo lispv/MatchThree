@@ -646,7 +646,9 @@ class GameBoard: ObservableObject {
                 }
             }
         }
-        rebuildPlacedGems(dropDistances: dists)
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {
+            rebuildPlacedGems(dropDistances: dists)
+        }
         return dists
     }
 
@@ -672,7 +674,9 @@ class GameBoard: ObservableObject {
                 }
             }
         }
-        rebuildPlacedGems(dropDistances: dists)
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) {
+            rebuildPlacedGems(dropDistances: dists)
+        }
     }
 
     // MARK: - Deadlock detection
@@ -885,7 +889,7 @@ struct GemView: View {
                 .scaleEffect(matched ? 1.5 : 1)
                 .opacity(matched ? 0 : 1)
         }
-        .animation(.easeIn(duration: 0.2), value: matched)
+        .animation(.spring(response: 0.18, dampingFraction: 0.45), value: matched)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selected)
     }
 }
