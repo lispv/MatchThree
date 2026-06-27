@@ -470,8 +470,8 @@ class GameBoard: ObservableObject {
         var crossLines: [(Int, Int)] = []          // (row, col) of crosses
 
         for g in groups {
-            if g.positions.count >= 5 {
-                // Rainbow gem: spawn at centroid (special behavior handled in swap)
+            if g.positions.count >= 6 {
+                // Rainbow gem: 6-match spawns at centroid, swap with neighbor clears all same color
                 let rows = g.positions.map(\.row)
                 let cols = g.positions.map(\.col)
                 let cr = rows.reduce(0,+) / rows.count
