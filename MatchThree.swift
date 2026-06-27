@@ -364,12 +364,12 @@ class GameBoard: ObservableObject {
                 }
                 // Also clear the rainbow gem itself
                 allMatched.insert(newRainbowPos)
-                // Suppress new rainbow generation for this entire chain
+                // Suppress only the immediate clear — chain reactions can generate rainbows
                 self.suppressRainbowGeneration = true
-                // Process as match — removeGems will clear everything in allMatched
                 self.failedSwaps = 0
                 self.timeRemaining = 10
                 self.processMatches([MatchGroup(positions: allMatched, kind: targetKind)])
+                self.suppressRainbowGeneration = false
             }
             return
         }
