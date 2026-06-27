@@ -853,10 +853,14 @@ class GameBoard: ObservableObject {
     func tickParticles(dt: TimeInterval) {
         tickFrame += 1
 
-        // Ranked countdown (throttled display update)
-        if gameMode == .ranked && !gameOver && !isProcessing {
-            timeRemaining -= dt
-            if tickFrame % 6 == 0 { lastTimeDisplay = timeRemaining } // update display every ~0.1s
+        // Ranked countdown: ticks at half speed during chain processing
+        if gameMode == .ranked && !gameOver {
+            if isProcessing {
+                timeRemaining -= dt * 0.5
+            } else {
+                timeRemaining -= dt
+            }
+            if tickFrame % 6 == 0 { lastTimeDisplay = timeRemaining }
             if timeRemaining <= 0 {
                 gameOver = true
                 gameOverReason = "超时"
