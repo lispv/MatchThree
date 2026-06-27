@@ -544,6 +544,8 @@ class GameBoard: ObservableObject {
             }
         }
         extraClears.subtract(allMatched)
+        // Ensure rainbowProtected gem is not cleared by cross pattern
+        if let rp = rainbowProtected { extraClears.remove(rp) }
 
         // Match centroid (for score pop, missile, nuke)
         var totalRow: CGFloat = 0, totalCol: CGFloat = 0, totalCount: CGFloat = 0
