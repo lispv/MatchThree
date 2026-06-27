@@ -10,6 +10,23 @@ struct HapticEngine {
     static func heavy()  { NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default) }
 }
 
+// MARK: - High Score Manager
+
+struct HighScoreManager {
+    private static let defaults = UserDefaults.standard
+
+    static func highScore(for mode: GameMode) -> Int {
+        defaults.integer(forKey: "highscore_\(mode.rawValue)")
+    }
+
+    static func save(_ score: Int, for mode: GameMode) {
+        let current = highScore(for: mode)
+        if score > current {
+            defaults.set(score, forKey: "highscore_\(mode.rawValue)")
+        }
+    }
+}
+
 // MARK: - Sound Engine (procedural, no audio files)
 
 class SoundEngine {
@@ -250,6 +267,7 @@ class GameBoard: ObservableObject {
     @Published var missile: Missile? = nil
     @Published var nukeStyle: NukeStyle = .missile
     @Published var gameMode: GameMode = .casual
+    var highScore: Int { HighScoreManager.highScore(for: gameMode) }
     @Published var theme: Theme = .sakura
     @Published var failedSwaps = 0
     @Published var timeRemaining: Double = 10
@@ -281,6 +299,8 @@ class GameBoard: ObservableObject {
     }
 
     func newGame() {
+        // Save high score before resetting
+        HighScoreManager.save(score, for: gameMode)
         let kinds = availableKinds
         grid = Array(repeating: Array(repeating: nil, count: Self.cols), count: Self.rows)
         for r in 0..<Self.rows { for c in 0..<Self.cols { grid[r][c] = Gem(kind: kinds.randomElement()!) } }
@@ -331,6 +351,7 @@ class GameBoard: ObservableObject {
                     self.gameOver = true
                     self.gameOverReason = "5次无效交换"
                     self.isProcessing = false
+                    HighScoreManager.save(self.score, for: self.gameMode)
                     SoundEngine.shared.playGameOver()
                     HapticEngine.heavy()
                     return
@@ -841,6 +862,7 @@ class GameBoard: ObservableObject {
                 gameOverReason = "超时"
                 timeRemaining = 0
                 lastTimeDisplay = 0
+                HighScoreManager.save(score, for: gameMode)
                 SoundEngine.shared.playGameOver()
             }
         }
@@ -1253,6 +1275,9 @@ struct ContentView: View {
                                 .font(.system(size: 36, weight: .heavy))
                                 .foregroundColor(board.theme.scoreColor)
                                 .shadow(color: board.theme.isDark ? .orange.opacity(0.5) : .clear, radius: 4)
+                            Text("Best \(board.highScore)")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(board.highScore > 0 ? board.theme.dimColor : .clear)
                             Text("Combo x\(max(board.combo, 1))")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.orange)
