@@ -2,6 +2,8 @@
 
 macOS-native match-3 puzzle game built with SwiftUI. Pure local, no backend.
 
+![screenshot](screenshot.png)
+
 An iOS baseline lives at [MatchThree-iOS](https://github.com/lispv/MatchThree-iOS).
 
 ## Features
@@ -9,6 +11,7 @@ An iOS baseline lives at [MatchThree-iOS](https://github.com/lispv/MatchThree-iO
 - 8×8 grid, 8 gem types (4 initially, unlock as you score)
 - Click-to-select, adjacent swap, chain reactions
 - **3 themes**: Skynet (dark/red), Sakura (pink petals), Seaside (ocean bubbles)
+- **Special gems**: 4-match bomb (3×3 clear), 5-match rainbow (swap clears all same color)
 - **2 modes**: Casual (unlimited), Ranked (5 failed swaps = loss, 10s countdown)
 - **2 match effects**: Cruise missile, Block shatter
 - Particles, screen shake, neon glow
