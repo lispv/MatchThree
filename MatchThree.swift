@@ -122,6 +122,8 @@ struct GemKind: Equatable {
 
     static func == (lhs: GemKind, rhs: GemKind) -> Bool { lhs.name == rhs.name }
 
+    var isRainbow: Bool { name == "rainbow" }
+
     static let normalKinds: [GemKind] = [
         GemKind(name: "ruby",    color: Color(red: 1.00, green: 0.08, blue: 0.15), icon: "heart.fill"),
         GemKind(name: "emerald", color: Color(red: 0.05, green: 0.95, blue: 0.25), icon: "leaf.fill"),
@@ -1103,6 +1105,29 @@ struct GemView: View {
                 .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                 .scaleEffect(matched ? 1.5 : 1)
                 .opacity(matched ? 0 : 1)
+        }
+        // Rainbow gem overlay: multi-color gradient + special icon
+        .overlay {
+            if kind.isRainbow {
+                ZStack {
+                    RoundedRectangle(cornerRadius: size * 0.18)
+                        .fill(
+                            LinearGradient(colors: [
+                                Color(red: 1, green: 0.2, blue: 0.2),
+                                Color(red: 1, green: 0.7, blue: 0),
+                                Color(red: 0.1, green: 0.9, blue: 0.3),
+                                Color(red: 0.1, green: 0.5, blue: 1),
+                                Color(red: 0.7, green: 0.1, blue: 0.9),
+                            ], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .opacity(0.85)
+                        .frame(width: size, height: size)
+                    Image(systemName: "star.circle.fill")
+                        .font(.system(size: size * 0.4, weight: .heavy))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                }
+            }
         }
         .animation(.spring(response: 0.18, dampingFraction: 0.45), value: matched)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selected)
