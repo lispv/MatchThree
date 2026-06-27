@@ -611,6 +611,7 @@ class GameBoard: ObservableObject {
             }
             if rainbowProtected == nil || pos != rainbowProtected! { grid[pos.row][pos.col] = nil }
         }
+        rainbowProtected = nil
         // Score bonus for special clears
         let extraCount = extraClears.count
         if extraCount > 0 { score += extraCount * 15 }
@@ -804,7 +805,6 @@ class GameBoard: ObservableObject {
                 grid[p.row][p.col] = nil
             }
         } }
-        rainbowProtected = nil
     }
 
     @discardableResult
