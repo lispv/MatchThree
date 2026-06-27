@@ -1357,6 +1357,17 @@ struct ContentView: View {
                                 }
                             }
                         }
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) { board.newGame() }
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(board.theme.textColor)
+                                .padding(8)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
                             Picker("模式", selection: $board.gameMode) {
@@ -1418,19 +1429,6 @@ struct ContentView: View {
                         }
                     }
                     .padding(.horizontal, 8)
-
-                    // New Game button
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.3)) { board.newGame() }
-                    } label: {
-                        Label("New Game", systemImage: "arrow.counterclockwise")
-                            .font(.headline)
-                            .padding(.horizontal, 28).padding(.vertical, 10)
-                            .background(board.theme.isDark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Color.black.opacity(0.08)))
-                            .clipShape(Capsule())
-                            .foregroundColor(board.theme.textColor)
-                    }
-                    .buttonStyle(.plain)
 
                     // Ranked mode status
                     if board.gameMode == .ranked {
