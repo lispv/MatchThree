@@ -470,7 +470,22 @@ class GameBoard: ObservableObject {
         var crossLines: [(Int, Int)] = []          // (row, col) of crosses
 
         for g in groups {
-            if g.positions.count >= 4 {
+            if g.positions.count >= 5 {
+                // Rainbow gem: spawn at centroid (special behavior handled in swap)
+                let rows = g.positions.map(\.row)
+                let cols = g.positions.map(\.col)
+                let cr = rows.reduce(0,+) / rows.count
+                let cc = cols.reduce(0,+) / cols.count
+                // Mark centroid as protected from clearing
+                rainbowProtected = Position(row: cr, col: cc)
+                // Replace centroid gem with rainbow gem immediately
+                grid[cr][cc] = Gem(kind: GemKind.rainbow)
+                let bx = CGFloat(cc) * step + cellPx/2 + 6
+                let by = CGFloat(cr) * step + cellPx/2 + 6
+                bombRings.append((bx, by))
+                SoundEngine.shared.playCrossClear()
+                HapticEngine.heavy()
+            } else if g.positions.count >= 4 {
                 // Bomb: clear 3×3 around centroid
                 let rows = g.positions.map(\.row)
                 let cols = g.positions.map(\.col)
@@ -485,29 +500,6 @@ class GameBoard: ObservableObject {
                 let by = CGFloat(cr) * step + cellPx/2 + 6
                 bombRings.append((bx, by))
                 SoundEngine.shared.playBombClear()
-                HapticEngine.heavy()
-            }
-            if g.positions.count >= 5 {
-                // Rainbow gem: spawn at centroid (special behavior handled in swap)
-                let rows = g.positions.map(\.row)
-                let cols = g.positions.map(\.col)
-                let cr = rows.reduce(0,+) / rows.count
-                let cc = cols.reduce(0,+) / cols.count
-                // Remove centroid from match group so it won't be cleared
-                let centroidPos = Position(row: cr, col: cc)
-                var mutablePositions = g.positions
-                mutablePositions.remove(centroidPos)
-                // Update the match group (this affects the final groups processed)
-                // Since g is let, we need to work with groups array directly later
-                // Instead, we'll spawn rainbow now and mark center as protected
-                // Replace centroid gem with rainbow gem immediately
-                grid[cr][cc] = Gem(kind: GemKind.rainbow)
-                // Mark centroid as protected from clearing
-                rainbowProtected = Position(row: cr, col: cc)
-                let bx = CGFloat(cc) * step + cellPx/2 + 6
-                let by = CGFloat(cr) * step + cellPx/2 + 6
-                bombRings.append((bx, by))
-                SoundEngine.shared.playCrossClear()
                 HapticEngine.heavy()
             }
         }
