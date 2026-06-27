@@ -472,7 +472,7 @@ class GameBoard: ObservableObject {
         var crossLines: [(Int, Int)] = []          // (row, col) of crosses
 
         for g in groups {
-            if g.positions.count >= 6 {
+            if g.positions.count >= 5 {
                 // Rainbow gem: 6-match spawns at swap position (where player triggered the match)
                 let swapPos: Position
                 if let a = lastSwapA, g.positions.contains(a) { swapPos = a }
@@ -609,7 +609,7 @@ class GameBoard: ObservableObject {
                     color: .white, size: CGFloat.random(in: 6...14),
                     rotationSpeed: Double.random(in: -200...200), shape: .burst))
             }
-            grid[pos.row][pos.col] = nil
+            if rainbowProtected == nil || pos != rainbowProtected! { grid[pos.row][pos.col] = nil }
         }
         // Score bonus for special clears
         let extraCount = extraClears.count
