@@ -1,4 +1,75 @@
 import SwiftUI
+import AVFoundation
+
+// MARK: - Sound Engine (procedural, no audio files)
+
+class SoundEngine {
+    static let shared = SoundEngine()
+    private let engine = AVAudioEngine()
+    private let playerNode = AVAudioPlayerNode()
+    private var scheduledTime: AVAudioTime = .init(hostTime: 0)
+
+    private init() {
+        engine.attach(playerNode)
+        engine.connect(playerNode, to: engine.mainMixerNode, fromBus: 0, toBus: 0, format: nil)
+        try? engine.start()
+    }
+
+    func playTone(frequency: Float, duration: Float, wave: Wave = .sine, volume: Float = 0.3, delay: Float = 0) {
+        let format = playerNode.outputFormat(forBus: 0)
+        let sampleRate = Float(format.sampleRate)
+        let frameCount = Int(duration * sampleRate)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frameCount)) else { return }
+        buffer.frameLength = AVAudioFrameCount(frameCount)
+        let channels = Int(format.channelCount)
+
+        for frame in 0..<frameCount {
+            let t = Float(frame) / sampleRate
+            let envelope = max(0, 1.0 - (t / duration) * 1.5)
+            let sample: Float = switch wave {
+            case .sine:   sin(2 * .pi * frequency * t) * envelope * volume
+            case .square: (sin(2 * .pi * frequency * t) > 0 ? 1.0 : -1.0) * envelope * volume * 0.3
+            case .noise:  Float.random(in: -1...1) * envelope * volume * 0.6
+            case .saw:     (2 * (t * frequency - floor(t * frequency + 0.5))) * envelope * volume * 0.3
+            }
+            for ch in 0..<channels {
+                buffer.floatChannelData![ch][frame] = sample
+            }
+        }
+
+        let now = playerNode.lastRenderTime ?? AVAudioTime(hostTime: mach_absolute_time())
+        let startTime = AVAudioTime(hostTime: now.hostTime + AVAudioTime.hostTime(forSeconds: Double(delay)))
+        playerNode.scheduleBuffer(buffer, at: startTime, options: [])
+        if !playerNode.isPlaying { playerNode.play(at: nil) }
+    }
+
+    enum Wave { case sine, square, noise, saw }
+
+    func playSwap() { playTone(frequency: 880, duration: 0.04, wave: .square, volume: 0.2) }
+
+    func playMatch(combo: Int) {
+        let base = 440 + Float(min(combo - 1, 4)) * 80
+        playTone(frequency: base, duration: 0.12, wave: .sine, volume: 0.25)
+        playTone(frequency: base * 1.25, duration: 0.10, wave: .sine, volume: 0.2, delay: 0.04)
+        playTone(frequency: base * 1.5, duration: 0.08, wave: .sine, volume: 0.15, delay: 0.08)
+    }
+
+    func playExplosion() {
+        playTone(frequency: 55, duration: 0.35, wave: .noise, volume: 0.4)
+        playTone(frequency: 30, duration: 0.25, wave: .sine, volume: 0.3, delay: 0.02)
+    }
+
+    func playGameOver() {
+        playTone(frequency: 330, duration: 0.2, wave: .sine, volume: 0.3)
+        playTone(frequency: 262, duration: 0.25, wave: .sine, volume: 0.25, delay: 0.15)
+        playTone(frequency: 196, duration: 0.35, wave: .sine, volume: 0.2, delay: 0.3)
+    }
+
+    func playDeadlock() {
+        playTone(frequency: 660, duration: 0.08, wave: .sine, volume: 0.25)
+        playTone(frequency: 880, duration: 0.1, wave: .sine, volume: 0.2, delay: 0.06)
+    }
+}
 
 // MARK: - Gem Types (up to 8, unlocked progressively)
 
@@ -217,6 +288,9 @@ class GameBoard: ObservableObject {
         // Actually swap in grid
         grid[a.row][a.col] = vb; grid[b.row][b.col] = va
 
+        // Sound
+        SoundEngine.shared.playSwap()
+
         // Animate visual swap
         swapPlacedGemsVisual(a, b)
 
@@ -234,6 +308,7 @@ class GameBoard: ObservableObject {
                     self.gameOver = true
                     self.gameOverReason = "5次无效交换"
                     self.isProcessing = false
+                    SoundEngine.shared.playGameOver()
                     return
                 }
                 // Animate back
@@ -293,6 +368,9 @@ class GameBoard: ObservableObject {
         let base = count * 10
         let bonus = combo > 1 ? combo * 15 : 0
         score += base + bonus
+
+        // Sound
+        SoundEngine.shared.playMatch(combo: combo)
 
         matches = groups
 
@@ -412,7 +490,7 @@ class GameBoard: ObservableObject {
 
     private func triggerNuke(cx: CGFloat, cy: CGFloat, matchCount: Int) {
 
-        // Shockwave rings — scaled to match size
+        SoundEngine.shared.playExplosion()
         flashRings.append(FlashRing(x: cx, y: cy, color: .white, lineWidth: 16))
         flashRings.append(FlashRing(x: cx, y: cy, color: .yellow, lineWidth: 10))
         flashRings.append(FlashRing(x: cx, y: cy, color: .orange, lineWidth: 6))
@@ -625,6 +703,7 @@ class GameBoard: ObservableObject {
     func checkAndFixDeadlock() {
         guard !hasValidMoves() else { return }
         deadlockMessage = "No moves! Reshuffling..."
+        SoundEngine.shared.playDeadlock()
         isProcessing = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             guard let self = self else { return }
@@ -660,6 +739,7 @@ class GameBoard: ObservableObject {
                 gameOverReason = "超时"
                 timeRemaining = 0
                 lastTimeDisplay = 0
+                SoundEngine.shared.playGameOver()
             }
         }
 
