@@ -129,7 +129,7 @@ struct GemKind: Equatable {
         GemKind(name: "amethyst",color: Color(red: 0.75, green: 0.05, blue: 1.00), icon: "star.fill"),
         GemKind(name: "diamond", color: Color(red: 0.80, green: 0.95, blue: 1.00), icon: "sparkles"),
         GemKind(name: "obsidian",color: Color(red: 0.30, green: 0.30, blue: 0.38), icon: "moon.fill"),
-        GemKind(name: "coral",   color: Color(red: 1.00, green: 0.25, blue: 0.40), icon: "seal.fill"),
+        GemKind(name: "coral",   color: Color(red: 1.00, green: 0.38, blue: 0.22), icon: "seal.fill"),
     ]
 }
 
