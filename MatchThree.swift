@@ -122,7 +122,7 @@ struct GemKind: Equatable {
 
     static func == (lhs: GemKind, rhs: GemKind) -> Bool { lhs.name == rhs.name }
 
-    static let all: [GemKind] = [
+    static let normalKinds: [GemKind] = [
         GemKind(name: "ruby",    color: Color(red: 1.00, green: 0.08, blue: 0.15), icon: "heart.fill"),
         GemKind(name: "emerald", color: Color(red: 0.05, green: 0.95, blue: 0.25), icon: "leaf.fill"),
         GemKind(name: "sapphire",color: Color(red: 0.10, green: 0.50, blue: 1.00), icon: "drop.fill"),
@@ -132,6 +132,7 @@ struct GemKind: Equatable {
         GemKind(name: "obsidian",color: Color(red: 0.30, green: 0.30, blue: 0.38), icon: "moon.fill"),
         GemKind(name: "coral",   color: Color(red: 1.00, green: 0.38, blue: 0.22), icon: "seal.fill"),
     ]
+    static let rainbow: GemKind = GemKind(name: "rainbow", color: Color(red: 1.00, green: 0.95, blue: 0.60), icon: "sparkles")
 }
 
 // MARK: - Models
@@ -286,7 +287,7 @@ class GameBoard: ObservableObject {
 
     var activeKinds: Int { min(4 + (score / 300), Self.maxKinds) }
 
-    private var availableKinds: [GemKind] { Array(GemKind.all.prefix(activeKinds)) }
+    private var availableKinds: [GemKind] { Array(GemKind.normalKinds.prefix(activeKinds)) }
 
     init() {
         grid = Array(repeating: Array(repeating: nil, count: Self.cols), count: Self.rows)
@@ -330,6 +331,41 @@ class GameBoard: ObservableObject {
     private func trySwap(_ a: Position, _ b: Position) {
         isProcessing = true; selectedPosition = nil; combo = 0
         let va = grid[a.row][a.col]; let vb = grid[b.row][b.col]
+        let isRainbowA = va?.kind.name == "rainbow"
+        let isRainbowB = vb?.kind.name == "rainbow"
+
+        if isRainbowA || isRainbowB {
+            // Rainbow swap: clear entire board of the non-rainbow color, then replace rainbow with normal
+            let rainbowPos = isRainbowA ? a : b
+            let otherKind = (isRainbowA ? vb : va)?.kind
+            guard let targetKind = otherKind else {
+                isProcessing = false
+                return
+            }
+            // Swap them so rainbow moves to other position
+            grid[a.row][a.col] = vb; grid[b.row][b.col] = va
+            swapPlacedGemsVisual(a, b)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                guard let self = self else { return }
+                // Clear entire board of target color, then replace rainbow with random normal gem
+                var allMatched: Set<Position> = []
+                for r in 0..<Self.rows {
+                    for c in 0..<Self.cols {
+                        if let gem = self.grid[r][c], gem.kind.name == targetKind.name {
+                            allMatched.insert(Position(row: r, col: c))
+                        }
+                    }
+                }
+                // Replace rainbow with normal gem (so it doesn't stay on board)
+                let replacementKind = self.availableKinds.filter { $0.name != "rainbow" }.randomElement()!
+                self.grid[rainbowPos.row][rainbowPos.col] = Gem(kind: replacementKind)
+                // Process as match
+                self.failedSwaps = 0
+                self.timeRemaining = 10
+                self.processMatches([MatchGroup(positions: allMatched, kind: targetKind)])
+            }
+            return
+        }
 
         // Actually swap in grid
         grid[a.row][a.col] = vb; grid[b.row][b.col] = va
@@ -448,6 +484,20 @@ class GameBoard: ObservableObject {
                 let by = CGFloat(cr) * step + cellPx/2 + 6
                 bombRings.append((bx, by))
                 SoundEngine.shared.playBombClear()
+                HapticEngine.heavy()
+            }
+            if g.positions.count >= 5 {
+                // Rainbow gem: spawn at centroid (special behavior handled in swap)
+                let rows = g.positions.map(\.row)
+                let cols = g.positions.map(\.col)
+                let cr = rows.reduce(0,+) / rows.count
+                let cc = cols.reduce(0,+) / cols.count
+                // Replace centroid gem with rainbow gem immediately
+                grid[cr][cc] = Gem(kind: GemKind.rainbow)
+                let bx = CGFloat(cc) * step + cellPx/2 + 6
+                let by = CGFloat(cr) * step + cellPx/2 + 6
+                bombRings.append((bx, by))
+                SoundEngine.shared.playCrossClear()
                 HapticEngine.heavy()
             }
         }
@@ -1240,7 +1290,7 @@ struct ContentView: View {
                                 .foregroundColor(board.theme.textColor)
                             HStack(spacing: 4) {
                                 ForEach(0..<board.activeKinds, id:\.self) { i in
-                                    Circle().fill(GemKind.all[i].color).frame(width: 8, height: 8)
+                                    Circle().fill(GemKind.normalKinds[i].color).frame(width: 8, height: 8)
                                 }
                             }
                         }
