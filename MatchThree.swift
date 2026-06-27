@@ -1353,6 +1353,26 @@ struct ContentView: View {
                                     removal: .scale(scale: 0.01).combined(with: .opacity)
                                 ))
                                 .onTapGesture { board.tap(row: placed.row, col: placed.col) }
+                                .simultaneousGesture(
+                                    DragGesture(minimumDistance: 15)
+                                        .onEnded { value in
+                                            let dx = value.translation.width
+                                            let dy = value.translation.height
+                                            let fromRow = placed.row
+                                            let fromCol = placed.col
+                                            var toRow = fromRow
+                                            var toCol = fromCol
+                                            if abs(dx) > abs(dy) {
+                                                toCol = dx > 0 ? fromCol + 1 : fromCol - 1
+                                            } else {
+                                                toRow = dy > 0 ? fromRow + 1 : fromRow - 1
+                                            }
+                                            guard toRow >= 0, toRow < GameBoard.rows,
+                                                  toCol >= 0, toCol < GameBoard.cols else { return }
+                                            board.tap(row: fromRow, col: fromCol)
+                                            board.tap(row: toRow, col: toCol)
+                                        }
+                                )
                         }
 
                         // Game over overlay (on top of gems)
