@@ -273,6 +273,7 @@ class GameBoard: ObservableObject {
     @Published var missile: Missile? = nil
     var rainbowProtected: Position? = nil
     var lastSwapA: Position? = nil, lastSwapB: Position? = nil
+    var suppressRainbowGeneration = false
     @Published var nukeStyle: NukeStyle = .missile
     @Published var soundEnabled = true
     @Published var gameMode: GameMode = .casual
@@ -367,7 +368,8 @@ class GameBoard: ObservableObject {
                 // Replace rainbow's old position with normal gem
                 let replacementKind = self.availableKinds.filter { $0.name != "rainbow" }.randomElement()!
                 self.grid[rainbowPos.row][rainbowPos.col] = Gem(kind: replacementKind)
-                // Process as match
+                // Process as match — suppress rainbow generation for this chain
+                self.suppressRainbowGeneration = true
                 self.failedSwaps = 0
                 self.timeRemaining = 10
                 self.processMatches([MatchGroup(positions: allMatched, kind: targetKind)])
@@ -477,7 +479,7 @@ class GameBoard: ObservableObject {
         var crossLines: [(Int, Int)] = []          // (row, col) of crosses
 
         for g in groups {
-            if g.positions.count >= 5 {
+            if g.positions.count >= 5 && !suppressRainbowGeneration {
                 // Rainbow gem: 6-match spawns at swap position (where player triggered the match)
                 let swapPos: Position
                 if let a = lastSwapA, g.positions.contains(a) { swapPos = a }
@@ -638,7 +640,7 @@ class GameBoard: ObservableObject {
                 self.spawn(self.availableKinds, mergeDists: gravityDists)
                 self.matches = []
                 if let next = self.findMatches(), !next.isEmpty { self.processMatches(next) }
-                else { self.isProcessing = false; self.combo = 0; self.checkAndFixDeadlock() }
+                else { self.isProcessing = false; self.suppressRainbowGeneration = false; self.combo = 0; self.checkAndFixDeadlock() }
             }
         }
     }
