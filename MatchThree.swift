@@ -76,10 +76,10 @@ class SoundEngine {
     func playSwap() { playTone(frequency: 1200, duration: 0.03, wave: .sine, volume: 0.25) }
 
     func playMatch(combo: Int) {
-        let base = 440 + Float(min(combo - 1, 4)) * 80
-        playTone(frequency: base, duration: 0.12, wave: .sine, volume: 0.25)
-        playTone(frequency: base * 1.25, duration: 0.10, wave: .sine, volume: 0.2, delay: 0.04)
-        playTone(frequency: base * 1.5, duration: 0.08, wave: .sine, volume: 0.15, delay: 0.08)
+        let base = 880 + Float(min(combo - 1, 4)) * 110
+        playTone(frequency: base, duration: 0.08, wave: .sine, volume: 0.3)
+        playTone(frequency: base * 2, duration: 0.06, wave: .sine, volume: 0.2, delay: 0.03)
+        playTone(frequency: base * 3, duration: 0.04, wave: .sine, volume: 0.1, delay: 0.06)
     }
 
     func playExplosion() {
