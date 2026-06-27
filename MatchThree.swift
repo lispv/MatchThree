@@ -132,7 +132,7 @@ struct GemKind: Equatable {
         GemKind(name: "obsidian",color: Color(red: 0.30, green: 0.30, blue: 0.38), icon: "moon.fill"),
         GemKind(name: "coral",   color: Color(red: 1.00, green: 0.38, blue: 0.22), icon: "seal.fill"),
     ]
-    static let rainbow: GemKind = GemKind(name: "rainbow", color: Color(red: 1.00, green: 0.95, blue: 0.60), icon: "sparkles")
+    static let rainbow: GemKind = GemKind(name: "rainbow", color: Color(red: 1.00, green: 0.50, blue: 0.00), icon: "sparkles")
 }
 
 // MARK: - Models
