@@ -273,6 +273,7 @@ class GameBoard: ObservableObject {
     @Published var missile: Missile? = nil
     var rainbowProtected: Position? = nil
     var lastSwapA: Position? = nil, lastSwapB: Position? = nil
+    var suppressRainbowGeneration = false
     @Published var nukeStyle: NukeStyle = .missile
     @Published var soundEnabled = true
     @Published var gameMode: GameMode = .casual
@@ -340,8 +341,7 @@ class GameBoard: ObservableObject {
         let isRainbowB = vb?.kind.name == "rainbow"
 
         if isRainbowA || isRainbowB {
-            // Rainbow swap: clear entire board of the non-rainbow color, then replace rainbow with normal
-            let rainbowPos = isRainbowA ? a : b
+            // Rainbow swap: clear entire board + rainbow itself, suppress further rainbow gens
             let otherKind = (isRainbowA ? vb : va)?.kind
             guard let targetKind = otherKind else {
                 isProcessing = false
@@ -352,8 +352,9 @@ class GameBoard: ObservableObject {
             swapPlacedGemsVisual(a, b)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 guard let self = self else { return }
-                // Clear entire board of target color, then replace rainbow with random normal gem
+                // Collect all gem positions of target color + rainbow gem position
                 var allMatched: Set<Position> = []
+                let newRainbowPos = isRainbowA ? b : a // rainbow moved here after swap
                 for r in 0..<Self.rows {
                     for c in 0..<Self.cols {
                         if let gem = self.grid[r][c], gem.kind.name == targetKind.name {
@@ -361,10 +362,11 @@ class GameBoard: ObservableObject {
                         }
                     }
                 }
-                // Replace rainbow with normal gem (so it doesn't stay on board)
-                let replacementKind = self.availableKinds.filter { $0.name != "rainbow" }.randomElement()!
-                self.grid[rainbowPos.row][rainbowPos.col] = Gem(kind: replacementKind)
-                // Process as match
+                // Also clear the rainbow gem itself
+                allMatched.insert(newRainbowPos)
+                // Suppress new rainbow generation for this entire chain
+                self.suppressRainbowGeneration = true
+                // Process as match — removeGems will clear everything in allMatched
                 self.failedSwaps = 0
                 self.timeRemaining = 10
                 self.processMatches([MatchGroup(positions: allMatched, kind: targetKind)])
@@ -474,7 +476,7 @@ class GameBoard: ObservableObject {
         var crossLines: [(Int, Int)] = []          // (row, col) of crosses
 
         for g in groups {
-            if g.positions.count >= 5 {
+            if g.positions.count >= 5 && !suppressRainbowGeneration {
                 // Rainbow gem: 6-match spawns at swap position (where player triggered the match)
                 let swapPos: Position
                 if let a = lastSwapA, g.positions.contains(a) { swapPos = a }
@@ -635,7 +637,7 @@ class GameBoard: ObservableObject {
                 self.spawn(self.availableKinds, mergeDists: gravityDists)
                 self.matches = []
                 if let next = self.findMatches(), !next.isEmpty { self.processMatches(next) }
-                else { self.isProcessing = false; self.combo = 0; self.checkAndFixDeadlock() }
+                else { self.isProcessing = false; self.suppressRainbowGeneration = false; self.combo = 0; self.checkAndFixDeadlock() }
             }
         }
     }
