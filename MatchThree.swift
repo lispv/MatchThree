@@ -69,6 +69,19 @@ class SoundEngine {
         playTone(frequency: 660, duration: 0.08, wave: .sine, volume: 0.25)
         playTone(frequency: 880, duration: 0.1, wave: .sine, volume: 0.2, delay: 0.06)
     }
+
+    func playBombClear() {
+        playTone(frequency: 40, duration: 0.4, wave: .noise, volume: 0.45)
+        playTone(frequency: 80, duration: 0.3, wave: .sine, volume: 0.35, delay: 0.05)
+        playTone(frequency: 150, duration: 0.25, wave: .saw, volume: 0.2, delay: 0.1)
+    }
+
+    func playCrossClear() {
+        playTone(frequency: 600, duration: 0.1, wave: .sine, volume: 0.3)
+        playTone(frequency: 900, duration: 0.08, wave: .sine, volume: 0.25, delay: 0.05)
+        playTone(frequency: 1200, duration: 0.06, wave: .sine, volume: 0.2, delay: 0.1)
+        playTone(frequency: 300, duration: 0.2, wave: .saw, volume: 0.15, delay: 0.08)
+    }
 }
 
 // MARK: - Gem Types (up to 8, unlocked progressively)
@@ -374,10 +387,52 @@ class GameBoard: ObservableObject {
 
         matches = groups
 
-        // Match centroid (for score pop, missile, nuke)
+        // --- Special pattern detection ---
         let gap: CGFloat = 2
         let step = cellPx + gap
+        let allMatched = Set(groups.flatMap(\.positions))
+        var extraClears = Set<Position>()
+        var bombRings: [(CGFloat, CGFloat)] = []  // for visual flash rings
+        var crossLines: [(Int, Int)] = []          // (row, col) of crosses
 
+        for g in groups {
+            if g.positions.count >= 4 {
+                // Bomb: clear 3×3 around centroid
+                let rows = g.positions.map(\.row)
+                let cols = g.positions.map(\.col)
+                let cr = rows.reduce(0,+) / rows.count
+                let cc = cols.reduce(0,+) / cols.count
+                for r in max(0, cr-1)...min(Self.rows-1, cr+1) {
+                    for c in max(0, cc-1)...min(Self.cols-1, cc+1) {
+                        extraClears.insert(Position(row: r, col: c))
+                    }
+                }
+                let bx = CGFloat(cc) * step + cellPx/2 + 6
+                let by = CGFloat(cr) * step + cellPx/2 + 6
+                bombRings.append((bx, by))
+                SoundEngine.shared.playBombClear()
+            }
+        }
+
+        // Cross: intersection of H and V match groups
+        if groups.count >= 2 {
+            for i in 0..<(groups.count-1) {
+                for j in (i+1)..<groups.count {
+                    let inter = groups[i].positions.intersection(groups[j].positions)
+                    if !inter.isEmpty {
+                        for pos in inter {
+                            for r in 0..<Self.rows { extraClears.insert(Position(row: r, col: pos.col)) }
+                            for c in 0..<Self.cols { extraClears.insert(Position(row: pos.row, col: c)) }
+                            crossLines.append((pos.row, pos.col))
+                        }
+                        SoundEngine.shared.playCrossClear()
+                    }
+                }
+            }
+        }
+        extraClears.subtract(allMatched)
+
+        // Match centroid (for score pop, missile, nuke)
         var totalRow: CGFloat = 0, totalCol: CGFloat = 0, totalCount: CGFloat = 0
         for g in groups { for p in g.positions { totalRow += CGFloat(p.row); totalCol += CGFloat(p.col); totalCount += 1 } }
         let tx = (totalCol / totalCount) * step + cellPx / 2 + 6
@@ -394,6 +449,17 @@ class GameBoard: ObservableObject {
         particles.removeAll()
         flashRings.removeAll()
         missile = nil
+
+        // Special pattern flash rings (after clearing old effects)
+        for (bx, by) in bombRings {
+            flashRings.append(FlashRing(x: bx, y: by, color: .yellow, lineWidth: 10))
+            flashRings.append(FlashRing(x: bx, y: by, color: .orange, lineWidth: 5))
+        }
+        for (r, c) in crossLines {
+            let cx = CGFloat(c) * step + cellPx/2 + 6
+            let cy = CGFloat(r) * step + cellPx/2 + 6
+            flashRings.append(FlashRing(x: cx, y: cy, color: .white, lineWidth: 8))
+        }
 
         if nukeStyle == .missile {
             missile = Missile(x: tx + CGFloat.random(in: -60...60), y: -60, targetX: tx, targetY: ty)
@@ -435,6 +501,23 @@ class GameBoard: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in self?.nuclearFlash = false }
         }
         removeGems(groups)
+        // Extra clears from special patterns
+        for pos in extraClears {
+            guard grid[pos.row][pos.col] != nil else { continue }
+            // Extra particles at extra clear positions
+            let px = CGFloat(pos.col) * step + cellPx/2 + 6
+            let py = CGFloat(pos.row) * step + cellPx/2 + 6
+            for _ in 0..<4 {
+                particles.append(Particle(x: px + CGFloat.random(in: -6...6), y: py + CGFloat.random(in: -6...6),
+                    vx: CGFloat.random(in: -80...80), vy: CGFloat.random(in: -120...(-30)),
+                    color: .white, size: CGFloat.random(in: 6...14),
+                    rotationSpeed: Double.random(in: -200...200), shape: .burst))
+            }
+            grid[pos.row][pos.col] = nil
+        }
+        // Score bonus for special clears
+        let extraCount = extraClears.count
+        if extraCount > 0 { score += extraCount * 15 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             guard let self = self else { return }
             let gravityDists = self.gravity()
