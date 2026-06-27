@@ -270,6 +270,7 @@ class GameBoard: ObservableObject {
     @Published var nuclearFlash = false
     @Published var missile: Missile? = nil
     var rainbowProtected: Position? = nil
+    var lastSwapA: Position? = nil, lastSwapB: Position? = nil
     @Published var nukeStyle: NukeStyle = .missile
     @Published var soundEnabled = true
     @Published var gameMode: GameMode = .casual
@@ -331,6 +332,7 @@ class GameBoard: ObservableObject {
 
     private func trySwap(_ a: Position, _ b: Position) {
         isProcessing = true; selectedPosition = nil; combo = 0
+        lastSwapA = a; lastSwapB = b
         let va = grid[a.row][a.col]; let vb = grid[b.row][b.col]
         let isRainbowA = va?.kind.name == "rainbow"
         let isRainbowB = vb?.kind.name == "rainbow"
@@ -471,17 +473,20 @@ class GameBoard: ObservableObject {
 
         for g in groups {
             if g.positions.count >= 6 {
-                // Rainbow gem: 6-match spawns at centroid, swap with neighbor clears all same color
-                let rows = g.positions.map(\.row)
-                let cols = g.positions.map(\.col)
-                let cr = rows.reduce(0,+) / rows.count
-                let cc = cols.reduce(0,+) / cols.count
-                // Mark centroid as protected from clearing
-                rainbowProtected = Position(row: cr, col: cc)
-                // Replace centroid gem with rainbow gem immediately
-                grid[cr][cc] = Gem(kind: GemKind.rainbow)
-                let bx = CGFloat(cc) * step + cellPx/2 + 6
-                let by = CGFloat(cr) * step + cellPx/2 + 6
+                // Rainbow gem: 6-match spawns at swap position (where player triggered the match)
+                let swapPos: Position
+                if let a = lastSwapA, g.positions.contains(a) { swapPos = a }
+                else if let b = lastSwapB, g.positions.contains(b) { swapPos = b }
+                else {
+                    // Fallback: centroid
+                    let rows = g.positions.map(\.row)
+                    let cols = g.positions.map(\.col)
+                    swapPos = Position(row: rows.reduce(0,+) / rows.count, col: cols.reduce(0,+) / cols.count)
+                }
+                rainbowProtected = swapPos
+                grid[swapPos.row][swapPos.col] = Gem(kind: GemKind.rainbow)
+                let bx = CGFloat(swapPos.col) * step + cellPx/2 + 6
+                let by = CGFloat(swapPos.row) * step + cellPx/2 + 6
                 bombRings.append((bx, by))
                 SoundEngine.shared.playCrossClear()
                 HapticEngine.heavy()
