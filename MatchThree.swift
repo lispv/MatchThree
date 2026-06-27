@@ -1046,16 +1046,31 @@ struct GemView: View {
 
     var body: some View {
         ZStack {
-            // Main body with explicit gradient
-            RoundedRectangle(cornerRadius: size * 0.18)
-                .fill(
-                    LinearGradient(colors: [
-                        kind.color.opacity(0.9),
-                        kind.color.opacity(0.5),
-                        kind.color.opacity(0.35)
-                    ], startPoint: .top, endPoint: .bottom)
-                )
-                .frame(width: size, height: size)
+            // Main body — rainbow gets multi-color gradient, normal gets single color
+            Group {
+                if kind.name == "rainbow" {
+                    RoundedRectangle(cornerRadius: size * 0.18)
+                        .fill(
+                            LinearGradient(colors: [
+                                Color(red: 1, green: 0.2, blue: 0.2),
+                                Color(red: 1, green: 0.7, blue: 0),
+                                Color(red: 0.1, green: 0.9, blue: 0.3),
+                                Color(red: 0.1, green: 0.5, blue: 1),
+                                Color(red: 0.7, green: 0.1, blue: 0.9),
+                            ], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                } else {
+                    RoundedRectangle(cornerRadius: size * 0.18)
+                        .fill(
+                            LinearGradient(colors: [
+                                kind.color.opacity(0.9),
+                                kind.color.opacity(0.5),
+                                kind.color.opacity(0.35)
+                            ], startPoint: .top, endPoint: .bottom)
+                        )
+                }
+            }
+            .frame(width: size, height: size)
                 // Highlight shine
                 .overlay(
                     RoundedRectangle(cornerRadius: size * 0.18)
