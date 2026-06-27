@@ -1419,6 +1419,19 @@ struct ContentView: View {
                     }
                     .padding(.horizontal, 8)
 
+                    // New Game button
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.3)) { board.newGame() }
+                    } label: {
+                        Label("New Game", systemImage: "arrow.counterclockwise")
+                            .font(.headline)
+                            .padding(.horizontal, 28).padding(.vertical, 10)
+                            .background(board.theme.isDark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Color.black.opacity(0.08)))
+                            .clipShape(Capsule())
+                            .foregroundColor(board.theme.textColor)
+                    }
+                    .buttonStyle(.plain)
+
                     // Ranked mode status
                     if board.gameMode == .ranked {
                         HStack(spacing: 20) {
@@ -1533,20 +1546,6 @@ struct ContentView: View {
                             .allowsHitTesting(false)
                     )
 
-                    // Button
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.3)) { board.newGame() }
-                    } label: {
-                        Label("New Game", systemImage: "arrow.counterclockwise")
-                            .font(.headline)
-                            .padding(.horizontal, 28).padding(.vertical, 10)
-                            .background(board.theme.isDark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Color.black.opacity(0.08)))
-                            .clipShape(Capsule())
-                            .foregroundColor(board.theme.textColor)
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .padding(12)
