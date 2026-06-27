@@ -1045,25 +1045,21 @@ struct GemView: View {
     let dropDistance: Int
 
     var body: some View {
+        let gradientColors: [Color] = kind.name == "rainbow" ? [
+            Color(red: 1, green: 0.2, blue: 0.2),
+            Color(red: 1, green: 0.7, blue: 0),
+            Color(red: 0.1, green: 0.9, blue: 0.3),
+            Color(red: 0.1, green: 0.5, blue: 1),
+            Color(red: 0.7, green: 0.1, blue: 0.9),
+        ] : [
+            kind.color.opacity(0.9),
+            kind.color.opacity(0.5),
+            kind.color.opacity(0.35)
+        ]
         ZStack {
             // Main body with explicit gradient
             RoundedRectangle(cornerRadius: size * 0.18)
-                .fill(
-                    kind.name == "rainbow" ?
-                    AnyShapeStyle(LinearGradient(colors: [
-                        Color(red: 1, green: 0.2, blue: 0.2),
-                        Color(red: 1, green: 0.7, blue: 0),
-                        Color(red: 0.1, green: 0.9, blue: 0.3),
-                        Color(red: 0.1, green: 0.5, blue: 1),
-                        Color(red: 0.7, green: 0.1, blue: 0.9),
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    :
-                    AnyShapeStyle(LinearGradient(colors: [
-                        kind.color.opacity(0.9),
-                        kind.color.opacity(0.5),
-                        kind.color.opacity(0.35)
-                    ], startPoint: .top, endPoint: .bottom))
-                )
+                .fill(LinearGradient(colors: gradientColors, startPoint: .top, endPoint: .bottom))
                 .frame(width: size, height: size)
                 // Highlight shine
                 .overlay(
