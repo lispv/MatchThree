@@ -132,7 +132,7 @@ struct GemKind: Equatable {
         GemKind(name: "obsidian",color: Color(red: 0.30, green: 0.30, blue: 0.38), icon: "moon.fill"),
         GemKind(name: "coral",   color: Color(red: 1.00, green: 0.38, blue: 0.22), icon: "seal.fill"),
     ]
-    static let rainbow: GemKind = GemKind(name: "rainbow", color: Color(red: 1.00, green: 0.50, blue: 0.00), icon: "sparkles")
+    static let rainbow: GemKind = GemKind(name: "rainbow", color: Color(red: 0.80, green: 0.15, blue: 0.90), icon: "rainbow")
 }
 
 // MARK: - Models
@@ -1049,11 +1049,20 @@ struct GemView: View {
             // Main body with explicit gradient
             RoundedRectangle(cornerRadius: size * 0.18)
                 .fill(
-                    LinearGradient(colors: [
+                    kind.name == "rainbow" ?
+                    AnyShapeStyle(LinearGradient(colors: [
+                        Color(red: 1, green: 0.2, blue: 0.2),
+                        Color(red: 1, green: 0.7, blue: 0),
+                        Color(red: 0.1, green: 0.9, blue: 0.3),
+                        Color(red: 0.1, green: 0.5, blue: 1),
+                        Color(red: 0.7, green: 0.1, blue: 0.9),
+                    ], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    :
+                    AnyShapeStyle(LinearGradient(colors: [
                         kind.color.opacity(0.9),
                         kind.color.opacity(0.5),
                         kind.color.opacity(0.35)
-                    ], startPoint: .top, endPoint: .bottom)
+                    ], startPoint: .top, endPoint: .bottom))
                 )
                 .frame(width: size, height: size)
                 // Highlight shine
