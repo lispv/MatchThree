@@ -269,6 +269,7 @@ class GameBoard: ObservableObject {
     @Published var deadlockMessage: String? = nil
     @Published var nuclearFlash = false
     @Published var missile: Missile? = nil
+    var rainbowProtected: Position? = nil
     @Published var nukeStyle: NukeStyle = .missile
     @Published var soundEnabled = true
     @Published var gameMode: GameMode = .casual
@@ -492,8 +493,17 @@ class GameBoard: ObservableObject {
                 let cols = g.positions.map(\.col)
                 let cr = rows.reduce(0,+) / rows.count
                 let cc = cols.reduce(0,+) / cols.count
+                // Remove centroid from match group so it won't be cleared
+                let centroidPos = Position(row: cr, col: cc)
+                var mutablePositions = g.positions
+                mutablePositions.remove(centroidPos)
+                // Update the match group (this affects the final groups processed)
+                // Since g is let, we need to work with groups array directly later
+                // Instead, we'll spawn rainbow now and mark center as protected
                 // Replace centroid gem with rainbow gem immediately
                 grid[cr][cc] = Gem(kind: GemKind.rainbow)
+                // Mark centroid as protected from clearing
+                rainbowProtected = Position(row: cr, col: cc)
                 let bx = CGFloat(cc) * step + cellPx/2 + 6
                 let by = CGFloat(cr) * step + cellPx/2 + 6
                 bombRings.append((bx, by))
@@ -792,7 +802,12 @@ class GameBoard: ObservableObject {
     }
 
     private func removeGems(_ groups: [MatchGroup]) {
-        for g in groups { for p in g.positions { grid[p.row][p.col] = nil } }
+        for g in groups { for p in g.positions {
+            if rainbowProtected == nil || p != rainbowProtected! {
+                grid[p.row][p.col] = nil
+            }
+        } }
+        rainbowProtected = nil
     }
 
     @discardableResult
