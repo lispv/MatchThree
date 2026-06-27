@@ -73,7 +73,7 @@ class SoundEngine {
 
     enum Wave { case sine, square, noise, saw }
 
-    func playSwap() { playTone(frequency: 880, duration: 0.04, wave: .square, volume: 0.2) }
+    func playSwap() { playTone(frequency: 1200, duration: 0.03, wave: .sine, volume: 0.25) }
 
     func playMatch(combo: Int) {
         let base = 440 + Float(min(combo - 1, 4)) * 80
