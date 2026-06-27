@@ -83,8 +83,8 @@ class SoundEngine {
     }
 
     func playExplosion() {
-        playTone(frequency: 55, duration: 0.35, wave: .noise, volume: 0.4)
-        playTone(frequency: 30, duration: 0.25, wave: .sine, volume: 0.3, delay: 0.02)
+        playTone(frequency: 40, duration: 0.35, wave: .sine, volume: 0.4)
+        playTone(frequency: 25, duration: 0.25, wave: .sine, volume: 0.35, delay: 0.02)
     }
 
     func playGameOver() {
@@ -99,8 +99,8 @@ class SoundEngine {
     }
 
     func playBombClear() {
-        playTone(frequency: 40, duration: 0.4, wave: .noise, volume: 0.45)
-        playTone(frequency: 80, duration: 0.3, wave: .sine, volume: 0.35, delay: 0.05)
+        playTone(frequency: 30, duration: 0.4, wave: .sine, volume: 0.45)
+        playTone(frequency: 60, duration: 0.3, wave: .sine, volume: 0.35, delay: 0.05)
         playTone(frequency: 110, duration: 0.2, wave: .sine, volume: 0.22, delay: 0.1)
     }
 
