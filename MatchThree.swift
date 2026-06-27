@@ -473,10 +473,8 @@ class GameBoard: ObservableObject {
         // --- Special pattern detection ---
         let gap: CGFloat = 2
         let step = cellPx + gap
-        let allMatched = Set(groups.flatMap(\.positions))
         var extraClears = Set<Position>()
         var bombRings: [(CGFloat, CGFloat)] = []  // for visual flash rings
-        var crossLines: [(Int, Int)] = []          // (row, col) of crosses
 
         for g in groups {
             if g.positions.count >= 5 && !suppressRainbowGeneration {
@@ -526,27 +524,6 @@ class GameBoard: ObservableObject {
             matches = filtered
         }
 
-        // Cross: intersection of H and V match groups
-        if groups.count >= 2 {
-            for i in 0..<(groups.count-1) {
-                for j in (i+1)..<groups.count {
-                    let inter = groups[i].positions.intersection(groups[j].positions)
-                    if !inter.isEmpty {
-                        for pos in inter {
-                            for r in 0..<Self.rows { extraClears.insert(Position(row: r, col: pos.col)) }
-                            for c in 0..<Self.cols { extraClears.insert(Position(row: pos.row, col: c)) }
-                            crossLines.append((pos.row, pos.col))
-                        }
-                        SoundEngine.shared.playCrossClear()
-                        HapticEngine.heavy()
-                    }
-                }
-            }
-        }
-        extraClears.subtract(allMatched)
-        // Ensure rainbowProtected gem is not cleared by cross pattern
-        if let rp = rainbowProtected { extraClears.remove(rp) }
-
         // Match centroid (for score pop, missile, nuke)
         var totalRow: CGFloat = 0, totalCol: CGFloat = 0, totalCount: CGFloat = 0
         for g in groups { for p in g.positions { totalRow += CGFloat(p.row); totalCol += CGFloat(p.col); totalCount += 1 } }
@@ -569,11 +546,6 @@ class GameBoard: ObservableObject {
         for (bx, by) in bombRings {
             flashRings.append(FlashRing(x: bx, y: by, color: .yellow, lineWidth: 10))
             flashRings.append(FlashRing(x: bx, y: by, color: .orange, lineWidth: 5))
-        }
-        for (r, c) in crossLines {
-            let cx = CGFloat(c) * step + cellPx/2 + 6
-            let cy = CGFloat(r) * step + cellPx/2 + 6
-            flashRings.append(FlashRing(x: cx, y: cy, color: .white, lineWidth: 8))
         }
 
         if nukeStyle == .missile {
