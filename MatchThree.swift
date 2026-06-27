@@ -513,6 +513,28 @@ class GameBoard: ObservableObject {
                 HapticEngine.heavy()
             }
         }
+        // L-shape (intersecting groups): total positions >= 5 → rainbow at intersection
+        if !suppressRainbowGeneration, groups.count >= 2 {
+            let allPositions = Set(groups.flatMap(\.positions))
+            if allPositions.count >= 5 {
+                // Find first intersection between any two groups
+                outer: for i in 0..<(groups.count-1) {
+                    for j in (i+1)..<groups.count {
+                        let inter = groups[i].positions.intersection(groups[j].positions)
+                        if let pos = inter.first {
+                            rainbowProtected = pos
+                            grid[pos.row][pos.col] = Gem(kind: GemKind.rainbow)
+                            let bx = CGFloat(pos.col) * step + cellPx/2 + 6
+                            let by = CGFloat(pos.row) * step + cellPx/2 + 6
+                            bombRings.append((bx, by))
+                            SoundEngine.shared.playCrossClear()
+                            HapticEngine.heavy()
+                            break outer
+                        }
+                    }
+                }
+            }
+        }
         // Rainbow gem is visible while everything else clears — exclude from matched animation
         if let rp = rainbowProtected {
             var filtered: [MatchGroup] = []
