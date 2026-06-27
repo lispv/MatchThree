@@ -31,6 +31,7 @@ struct HighScoreManager {
 
 class SoundEngine {
     static let shared = SoundEngine()
+    static var isEnabled = true
     private let engine = AVAudioEngine()
     private let playerNode = AVAudioPlayerNode()
     private var scheduledTime: AVAudioTime = .init(hostTime: 0)
@@ -42,6 +43,7 @@ class SoundEngine {
     }
 
     func playTone(frequency: Float, duration: Float, wave: Wave = .sine, volume: Float = 0.3, delay: Float = 0) {
+        guard Self.isEnabled else { return }
         let format = playerNode.outputFormat(forBus: 0)
         let sampleRate = Float(format.sampleRate)
         let frameCount = Int(duration * sampleRate)
@@ -266,6 +268,7 @@ class GameBoard: ObservableObject {
     @Published var nuclearFlash = false
     @Published var missile: Missile? = nil
     @Published var nukeStyle: NukeStyle = .missile
+    @Published var soundEnabled = true
     @Published var gameMode: GameMode = .casual
     var highScore: Int { HighScoreManager.highScore(for: gameMode) }
     @Published var theme: Theme = .sakura
@@ -1275,6 +1278,17 @@ struct ContentView: View {
                             .padding(.horizontal, 6).padding(.vertical, 1)
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
+
+                            Toggle(isOn: Binding(
+                                get: { SoundEngine.isEnabled },
+                                set: { SoundEngine.isEnabled = $0 }
+                            )) {
+                                Image(systemName: SoundEngine.isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                                    .foregroundColor(board.theme.textColor)
+                            }
+                            .toggleStyle(.button)
+                            .buttonStyle(.plain)
+
                             Text("\(board.score)")
                                 .font(.system(size: 36, weight: .heavy))
                                 .foregroundColor(board.theme.scoreColor)
