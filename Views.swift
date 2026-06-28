@@ -306,9 +306,6 @@ struct ContentView: View {
 
             GeometryReader { geo in
                 let cellSize = min(geo.size.width, geo.size.height - 280) / CGFloat(GameBoard.cols) - 4
-                let _ = { board.cellPx = cellSize }()
-                let _ = { board.windowWidth = geo.size.width }()
-                let _ = { board.windowHeight = geo.size.height }()
 
                 VStack(spacing: 4) {
                     // Header
@@ -520,6 +517,13 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .padding(12)
+            }
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { size in
+                board.windowWidth = size.width
+                board.windowHeight = size.height
+                board.cellPx = min(size.width, size.height - 280) / CGFloat(GameBoard.cols) - 4
             }
         }
         .frame(minWidth: 400, minHeight: 650)
