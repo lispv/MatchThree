@@ -105,7 +105,7 @@ class SoundEngine {
         playTone(frequency: 110, duration: 0.2, wave: .sine, volume: 0.22, delay: 0.1)
     }
 
-    func playCrossClear() {
+    func playRainbow() {
         playTone(frequency: 600, duration: 0.1, wave: .sine, volume: 0.3)
         playTone(frequency: 900, duration: 0.08, wave: .sine, volume: 0.25, delay: 0.05)
         playTone(frequency: 1200, duration: 0.06, wave: .sine, volume: 0.2, delay: 0.1)
@@ -273,8 +273,11 @@ class GameBoard: ObservableObject {
     var rainbowProtected: Position? = nil
     var lastSwapA: Position? = nil, lastSwapB: Position? = nil
     var suppressRainbowGeneration = false
+    /// Increments on every newGame(). Async chains capture it and bail out if
+    /// it changed, so a chain in flight when the board resets can't corrupt
+    /// the fresh board (e.g. a gravity/spawn firing after New Game is pressed).
+    private var boardGeneration = 0
     @Published var nukeStyle: NukeStyle = .missile
-    @Published var soundEnabled = true
     @Published var gameMode: GameMode = .casual
     var highScore: Int { HighScoreManager.highScore(for: gameMode) }
     @Published var theme: Theme = .sakura
@@ -308,8 +311,11 @@ class GameBoard: ObservableObject {
     }
 
     func newGame() {
-        // Save high score before resetting
-        HighScoreManager.save(score, for: gameMode)
+        // NOTE: high score is saved explicitly by callers for the mode the
+        // score was earned in (game-over paths, New Game button, mode switch).
+        // Saving here would risk recording it against the *new* mode when
+        // switching Casual ↔ Ranked mid-game.
+        boardGeneration += 1  // invalidate any in-flight async chains
         let kinds = availableKinds
         grid = Array(repeating: Array(repeating: nil, count: Self.cols), count: Self.rows)
         for r in 0..<Self.rows { for c in 0..<Self.cols { grid[r][c] = Gem(kind: kinds.randomElement()!) } }
@@ -335,6 +341,7 @@ class GameBoard: ObservableObject {
     private func trySwap(_ a: Position, _ b: Position) {
         isProcessing = true; selectedPosition = nil; combo = 0
         lastSwapA = a; lastSwapB = b
+        let gen = boardGeneration
         let va = grid[a.row][a.col]; let vb = grid[b.row][b.col]
         let isRainbowA = va?.kind.name == "rainbow"
         let isRainbowB = vb?.kind.name == "rainbow"
@@ -351,7 +358,7 @@ class GameBoard: ObservableObject {
             grid[a.row][a.col] = vb; grid[b.row][b.col] = va
             swapPlacedGemsVisual(a, b)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                guard let self = self else { return }
+                guard let self = self, gen == self.boardGeneration else { return }
                 // Clear entire board of target color, then replace rainbow with normal
                 var allMatched: Set<Position> = []
                 let newRainbowPos = isRainbowA ? b : a // rainbow moved here after swap
@@ -388,7 +395,7 @@ class GameBoard: ObservableObject {
 
         // Wait for animation, then check result
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-            guard let self = self else { return }
+            guard let self = self, gen == self.boardGeneration else { return }
             if let mg = self.findMatches(), !mg.isEmpty {
                 self.failedSwaps = 0  // reset on success
                 self.timeRemaining = 10
@@ -409,7 +416,8 @@ class GameBoard: ObservableObject {
                 self.grid[a.row][a.col] = va; self.grid[b.row][b.col] = vb
                 self.swapPlacedGemsVisual(a, b)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                    self?.isProcessing = false; self?.suppressRainbowGeneration = false
+                    guard let self = self, gen == self.boardGeneration else { return }
+                    self.isProcessing = false; self.suppressRainbowGeneration = false
                 }
             }
         }
@@ -457,6 +465,7 @@ class GameBoard: ObservableObject {
     // MARK: - Process chain
 
     private func processMatches(_ groups: [MatchGroup]) {
+        let gen = boardGeneration
         combo += 1
         let count = groups.reduce(0) { $0 + $1.positions.count }
         let base = count * 10
@@ -492,7 +501,7 @@ class GameBoard: ObservableObject {
                 let bx = CGFloat(swapPos.col) * step + cellPx/2 + 6
                 let by = CGFloat(swapPos.row) * step + cellPx/2 + 6
                 bombRings.append((bx, by))
-                SoundEngine.shared.playCrossClear()
+                SoundEngine.shared.playRainbow()
                 HapticEngine.heavy()
             } else if g.positions.count >= 4 {
                 // Bomb: clear 3×3 around centroid
@@ -526,7 +535,7 @@ class GameBoard: ObservableObject {
                             let bx = CGFloat(pos.col) * step + cellPx/2 + 6
                             let by = CGFloat(pos.row) * step + cellPx/2 + 6
                             bombRings.append((bx, by))
-                            SoundEngine.shared.playCrossClear()
+                            SoundEngine.shared.playRainbow()
                             HapticEngine.heavy()
                             break outer
                         }
@@ -572,6 +581,7 @@ class GameBoard: ObservableObject {
         if nukeStyle == .missile {
             missile = Missile(x: tx + CGFloat.random(in: -60...60), y: -60, targetX: tx, targetY: ty)
             func flyMissile() {
+            guard gen == boardGeneration else { return }
             guard var m = missile else { return }
             m.progress += 0.04
             let t = CGFloat(m.progress)
@@ -628,10 +638,10 @@ class GameBoard: ObservableObject {
         let extraCount = extraClears.count
         if extraCount > 0 { score += extraCount * 15 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self = self else { return }
+            guard let self = self, gen == self.boardGeneration else { return }
             let gravityDists = self.gravity()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                guard let self = self else { return }
+                guard let self = self, gen == self.boardGeneration else { return }
                 self.spawn(self.availableKinds, mergeDists: gravityDists)
                 self.matches = []
                 if let next = self.findMatches(), !next.isEmpty { self.processMatches(next) }
@@ -906,8 +916,9 @@ class GameBoard: ObservableObject {
         deadlockMessage = "No moves! Reshuffling..."
         SoundEngine.shared.playDeadlock()
         isProcessing = true
+        let gen = boardGeneration
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
-            guard let self = self else { return }
+            guard let self = self, gen == self.boardGeneration else { return }
             var attempts = 0
             repeat {
                 let kinds = self.availableKinds
@@ -1357,6 +1368,7 @@ struct ContentView: View {
                             }
                         }
                         Button {
+                            HighScoreManager.save(board.score, for: board.gameMode)
                             withAnimation(.easeInOut(duration: 0.3)) { board.newGame() }
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
@@ -1379,7 +1391,12 @@ struct ContentView: View {
                             .padding(.horizontal, 6).padding(.vertical, 1)
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
-                            .onChange(of: board.gameMode) { _, _ in board.newGame() }
+                            .onChange(of: board.gameMode) { oldMode, _ in
+                                // Score so far was earned in the OLD mode; save it
+                                // before the new game resets under the new mode.
+                                HighScoreManager.save(board.score, for: oldMode)
+                                board.newGame()
+                            }
 
                             Picker("主题", selection: $board.theme) {
                                 ForEach(Theme.allCases, id: \.self) { t in
@@ -1519,6 +1536,7 @@ struct ContentView: View {
                                     .font(.system(size: 28, weight: .heavy))
                                     .foregroundColor(.yellow)
                                 Button {
+                                    HighScoreManager.save(board.score, for: board.gameMode)
                                     board.newGame()
                                 } label: {
                                     Text("再来一局")
