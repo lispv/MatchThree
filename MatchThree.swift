@@ -132,7 +132,6 @@ struct GemKind: Equatable {
         GemKind(name: "amethyst",color: Color(red: 0.75, green: 0.05, blue: 1.00), icon: "star.fill"),
         GemKind(name: "diamond", color: Color(red: 0.80, green: 0.95, blue: 1.00), icon: "sparkles"),
         GemKind(name: "obsidian",color: Color(red: 0.30, green: 0.30, blue: 0.38), icon: "moon.fill"),
-        GemKind(name: "coral",   color: Color(red: 1.00, green: 0.38, blue: 0.22), icon: "seal.fill"),
     ]
     static let rainbow: GemKind = GemKind(name: "rainbow", color: Color(red: 1.00, green: 0.50, blue: 0.00), icon: "star.circle.fill")
 }
@@ -256,7 +255,7 @@ struct BgPetal: Identifiable {
 @MainActor
 class GameBoard: ObservableObject {
     static let rows = 8, cols = 8
-    static let maxKinds = 8
+    static let maxKinds = 7
 
     @Published var grid: [[Gem?]]
     @Published var score = 0
@@ -290,7 +289,7 @@ class GameBoard: ObservableObject {
     var windowWidth: CGFloat = 500
     var windowHeight: CGFloat = 700
 
-    var activeKinds: Int { min(4 + (score / 300), Self.maxKinds) }
+    var activeKinds: Int { min(4 + (score / 500), Self.maxKinds) }
 
     private var availableKinds: [GemKind] { Array(GemKind.normalKinds.prefix(activeKinds)) }
 
