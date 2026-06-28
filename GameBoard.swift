@@ -155,7 +155,7 @@ class GameBoard: ObservableObject {
                 self.failedSwaps += 1
                 if self.gameMode == .ranked && self.failedSwaps >= 5 {
                     self.gameOver = true
-                    self.gameOverReason = "5次无效交换"
+                    self.gameOverReason = "5 failed swaps"
                     self.isProcessing = false; self.suppressRainbowGeneration = false
                     HighScoreManager.save(self.score, for: self.gameMode)
                     SoundEngine.shared.playGameOver()
@@ -663,7 +663,7 @@ class GameBoard: ObservableObject {
 
     func checkAndFixDeadlock() {
         guard !hasValidMoves() else { return }
-        deadlockMessage = "No moves! Reshuffling..."
+        deadlockMessage = "No moves! Reshuffling…"
         SoundEngine.shared.playDeadlock()
         isProcessing = true
         let gen = boardGeneration
@@ -702,7 +702,7 @@ class GameBoard: ObservableObject {
             if tickFrame % 6 == 0 { lastTimeDisplay = timeRemaining }
             if timeRemaining <= 0 {
                 gameOver = true
-                gameOverReason = "超时"
+                gameOverReason = "Time's up"
                 timeRemaining = 0
                 lastTimeDisplay = 0
                 HighScoreManager.save(score, for: gameMode)

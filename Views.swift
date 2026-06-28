@@ -334,7 +334,7 @@ struct ContentView: View {
                         .buttonStyle(.plain)
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
-                            Picker("模式", selection: $board.gameMode) {
+                            Picker("Mode", selection: $board.gameMode) {
                                 ForEach(GameMode.allCases, id: \.self) { m in
                                     Text(m.rawValue).tag(m)
                                 }
@@ -351,7 +351,7 @@ struct ContentView: View {
                                 board.newGame()
                             }
 
-                            Picker("主题", selection: $board.theme) {
+                            Picker("Theme", selection: $board.theme) {
                                 ForEach(Theme.allCases, id: \.self) { t in
                                     Text(t.rawValue).tag(t)
                                 }
@@ -362,7 +362,7 @@ struct ContentView: View {
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
 
-                            Picker("特效", selection: $board.nukeStyle) {
+                            Picker("Effect", selection: $board.nukeStyle) {
                                 ForEach(NukeStyle.allCases, id: \.self) { style in
                                     Text(style.rawValue).tag(style)
                                 }
@@ -387,10 +387,10 @@ struct ContentView: View {
                                 .font(.system(size: 36, weight: .heavy))
                                 .foregroundColor(board.theme.scoreColor)
                                 .shadow(color: board.theme.isDark ? .orange.opacity(0.5) : .clear, radius: 4)
-                            Text("Best \(board.highScore)")
+                            Text("Best: \(board.highScore)")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(board.highScore > 0 ? board.theme.dimColor : .clear)
-                            Text("Combo x\(max(board.combo, 1))")
+                            Text("Combo ×\(max(board.combo, 1))")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.orange)
                                 .scaleEffect(board.combo >= 3 ? 1.2 : 1)
@@ -402,7 +402,7 @@ struct ContentView: View {
                     // Ranked mode status
                     if board.gameMode == .ranked {
                         HStack(spacing: 20) {
-                            Label("失败 \(board.failedSwaps)/5", systemImage: "xmark.circle")
+                            Label("Failed \(board.failedSwaps)/5", systemImage: "xmark.circle")
                                 .foregroundColor(board.failedSwaps >= 3 ? .red : board.theme.textColor)
                             Spacer()
                             Label(String(format: "%.1fs", board.lastTimeDisplay), systemImage: "timer")
@@ -479,20 +479,20 @@ struct ContentView: View {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 48))
                                     .foregroundColor(.orange)
-                                Text("游戏结束")
+                                Text("Game Over")
                                     .font(.system(size: 32, weight: .black))
                                     .foregroundColor(.white)
                                 Text(board.gameOverReason)
                                     .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(.red)
-                                Text("得分: \(board.score)")
+                                Text("Score: \(board.score)")
                                     .font(.system(size: 28, weight: .heavy))
                                     .foregroundColor(.yellow)
                                 Button {
                                     HighScoreManager.save(board.score, for: board.gameMode)
                                     board.newGame()
                                 } label: {
-                                    Text("再来一局")
+                                    Text("Play Again")
                                         .font(.system(size: 20, weight: .bold))
                                         .padding(.horizontal, 40).padding(.vertical, 14)
                                         .background(Color.orange)

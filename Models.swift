@@ -160,19 +160,19 @@ enum ParticleShape: CaseIterable {
 // MARK: - Effect style
 
 enum NukeStyle: String, CaseIterable {
-    case missile = "导弹"
-    case blocks = "积木"
+    case missile = "Missile"
+    case blocks = "Blocks"
 }
 
 enum GameMode: String, CaseIterable {
-    case casual = "休闲"
-    case ranked = "排位"
+    case casual = "Casual"
+    case ranked = "Ranked"
 }
 
 enum Theme: String, CaseIterable {
-    case skynet = "天网"
-    case sakura = "樱花"
-    case seaside = "海边"
+    case skynet = "Skynet"
+    case sakura = "Sakura"
+    case seaside = "Seaside"
 
     var bgGradient: [Color] {
         switch self {
