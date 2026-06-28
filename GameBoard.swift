@@ -216,6 +216,9 @@ class GameBoard: ObservableObject {
 
     private func processMatches(_ groups: [MatchGroup]) {
         let gen = boardGeneration
+        // Snapshot the effect style at the start of the chain so a mid-chain
+        // picker change can't flip us between missile/blocks halfway through.
+        let nukeStyleSnapshot = nukeStyle
         combo += 1
         let count = groups.reduce(0) { $0 + $1.positions.count }
         let base = count * 10
@@ -328,7 +331,7 @@ class GameBoard: ObservableObject {
             flashRings.append(FlashRing(x: bx, y: by, color: .orange, lineWidth: 5))
         }
 
-        if nukeStyle == .missile {
+        if nukeStyleSnapshot == .missile {
             missile = Missile(x: tx + CGFloat.random(in: -60...60), y: -60, targetX: tx, targetY: ty)
             func flyMissile() {
             guard gen == boardGeneration else { return }

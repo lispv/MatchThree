@@ -344,6 +344,7 @@ struct ContentView: View {
                             .padding(.horizontal, 6).padding(.vertical, 1)
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
+                            .disabled(board.isProcessing || board.gameOver)
                             .onChange(of: board.gameMode) { oldMode, _ in
                                 // Score so far was earned in the OLD mode; save it
                                 // before the new game resets under the new mode.
@@ -361,6 +362,7 @@ struct ContentView: View {
                             .padding(.horizontal, 6).padding(.vertical, 1)
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
+                            .disabled(board.isProcessing || board.gameOver)
 
                             Picker("Effect", selection: $board.nukeStyle) {
                                 ForEach(NukeStyle.allCases, id: \.self) { style in
@@ -372,6 +374,7 @@ struct ContentView: View {
                             .padding(.horizontal, 6).padding(.vertical, 1)
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
+                            .disabled(board.isProcessing || board.gameOver)
 
                             Toggle(isOn: Binding(
                                 get: { SoundEngine.isEnabled },
