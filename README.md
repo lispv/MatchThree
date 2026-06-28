@@ -22,7 +22,8 @@ An iOS baseline lives at [MatchThree-iOS](https://github.com/lispv/MatchThree-iO
 ### Command line (no Xcode needed)
 
 ```bash
-swiftc -parse-as-library -o build/MatchThree MatchThree.swift \
+swiftc -parse-as-library -o build/MatchThree \
+  Models.swift GameBoard.swift Views.swift MatchThreeApp.swift \
   -framework SwiftUI \
   -sdk $(xcrun --show-sdk-path --sdk macosx)
 
@@ -41,8 +42,11 @@ Requires macOS 14+ with Xcode Command Line Tools.
 ## Project structure
 
 ```
-MatchThree.swift    — single-file game source (all logic + UI)
-project.yml         — XcodeGen project spec (macOS target)
+Models.swift         — data types, enums, audio engine, haptic engine, score manager
+GameBoard.swift      — game logic (grid, matching, gravity, chain processing, deadlock)
+Views.swift          — SwiftUI views (gems, particles, overlays, content view)
+MatchThreeApp.swift  — @main app entry point
+project.yml          — XcodeGen project spec (macOS target)
 ```
 
 ## License
