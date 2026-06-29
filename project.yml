@@ -17,6 +17,15 @@ targets:
       - path: .
         excludes:
           - "*.hermesbak.*"
+          - "MatchThreeTests/**"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.matchthree.app
+
+  MatchThreeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: MatchThreeTests
+    dependencies:
+      - target: MatchThree

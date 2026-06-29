@@ -46,8 +46,18 @@ Models.swift         — data types, enums, audio engine, haptic engine, score m
 GameBoard.swift      — game logic (grid, matching, gravity, chain processing, deadlock)
 Views.swift          — SwiftUI views (gems, particles, overlays, content view)
 MatchThreeApp.swift  — @main app entry point
-project.yml          — XcodeGen project spec (macOS target)
+MatchThreeTests/     — Swift Testing unit tests (findMatches, gravity, spawn, hasValidMoves)
+project.yml          — XcodeGen project spec (macOS target + test target)
 ```
+
+## Run tests
+
+```bash
+xcodegen generate
+xcodebuild test -project MatchThree.xcodeproj -scheme MatchThree -destination 'platform=macOS'
+```
+
+Requires Xcode 16+ (for Swift Testing framework).
 
 ## License
 

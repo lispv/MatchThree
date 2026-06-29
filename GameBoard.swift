@@ -51,6 +51,15 @@ class GameBoard: ObservableObject {
         fillInitial()
     }
 
+    /// Replace the whole grid with the given layout and rebuild `placedGems`.
+    /// Used by tests to set up deterministic boards (no random fill).
+    func loadGrid(_ newGrid: [[Gem?]]) {
+        precondition(newGrid.count == Self.rows && newGrid.allSatisfy { $0.count == Self.cols },
+                     "loadGrid: grid must be \(Self.rows)×\(Self.cols)")
+        grid = newGrid
+        rebuildPlacedGems()
+    }
+
     // MARK: - Setup
 
     private func fillInitial() {
@@ -583,7 +592,7 @@ class GameBoard: ObservableObject {
     }
 
     @discardableResult
-    private func gravity() -> [UUID: Int] {
+    func gravity() -> [UUID: Int] {
         // Track gem positions before gravity
         var oldRows: [UUID: Int] = [:]
         for r in 0..<Self.rows {
@@ -612,7 +621,7 @@ class GameBoard: ObservableObject {
         return dists
     }
 
-    private func spawn(_ kinds: [GemKind], mergeDists: [UUID: Int] = [:]) {
+    func spawn(_ kinds: [GemKind], mergeDists: [UUID: Int] = [:]) {
         var dists = mergeDists
         for c in 0..<Self.cols {
             var emptyCount = 0
