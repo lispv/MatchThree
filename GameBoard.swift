@@ -650,7 +650,11 @@ class GameBoard: ObservableObject {
 
     // MARK: - Deadlock detection
 
-    func hasValidMoves() -> Bool {
+    func hasValidMoves() -> Bool { findValidSwap() != nil }
+
+    /// Find any adjacent swap that produces a match. Returns the pair of
+    /// positions, or nil if the board is a deadlock.
+    func findValidSwap() -> (Position, Position)? {
         for r in 0..<Self.rows {
             for c in 0..<Self.cols {
                 guard let gem = grid[r][c] else { continue }
@@ -659,18 +663,18 @@ class GameBoard: ObservableObject {
                     grid[r][c] = right; grid[r][c + 1] = gem
                     let match = findMatches()
                     grid[r][c] = gem; grid[r][c + 1] = right
-                    if match != nil { return true }
+                    if match != nil { return (Position(row: r, col: c), Position(row: r, col: c + 1)) }
                 }
                 // Try swap down
                 if r + 1 < Self.rows, let down = grid[r + 1][c] {
                     grid[r][c] = down; grid[r + 1][c] = gem
                     let match = findMatches()
                     grid[r][c] = gem; grid[r + 1][c] = down
-                    if match != nil { return true }
+                    if match != nil { return (Position(row: r, col: c), Position(row: r + 1, col: c)) }
                 }
             }
         }
-        return false
+        return nil
     }
 
     func checkAndFixDeadlock() {
@@ -692,6 +696,24 @@ class GameBoard: ObservableObject {
                 }
                 attempts += 1
             } while !self.hasValidMoves() && attempts < 50
+
+            // Deterministic fallback: if random reshuffle failed to produce a
+            // solvable board (astronomically unlikely, but possible), force one
+            // by injecting a single vertical 3-match that the player can trigger.
+            if !self.hasValidMoves() {
+                let kinds = self.availableKinds
+                let kind = kinds[0]
+                // cols 0,1,2 of row 0 -> same kind: swapping (0,0)<->(0,1) is a no-op
+                // for a match, so instead set up a row that needs ONE swap.
+                // Put same kind at (0,0),(0,1),(0,3): swapping (0,2)<->(0,3) makes
+                // (0,1),(0,2),(0,3) a 3-run. Ensure (0,2) differs to start.
+                self.grid[0][0] = Gem(kind: kind)
+                self.grid[0][1] = Gem(kind: kind)
+                self.grid[0][3] = Gem(kind: kind)
+                // (0,2) must be a different kind so the match isn't already formed.
+                let other = kinds.first { $0.name != kind.name } ?? kind
+                self.grid[0][2] = Gem(kind: other)
+            }
             self.rebuildPlacedGems()
             self.deadlockMessage = nil
             self.isProcessing = false; self.suppressRainbowGeneration = false

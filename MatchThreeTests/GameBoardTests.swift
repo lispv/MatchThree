@@ -188,3 +188,40 @@ struct NewGameTests {
         #expect(board.gameOver == false)
     }
 }
+
+// MARK: - findValidSwap
+
+@MainActor
+struct FindValidSwapTests {
+
+    @Test func returnsSwapOnSolvableBoard() async throws {
+        let board = GameBoard()
+        // A freshly built board always has at least one move.
+        let swap = try #require(board.findValidSwap())
+        // The two positions must be adjacent (Manhattan distance 1).
+        let dr = abs(swap.0.row - swap.1.row)
+        let dc = abs(swap.0.col - swap.1.col)
+        #expect(dr + dc == 1)
+    }
+
+    @Test func returnsNilOnDeadlockBoard() async throws {
+        // Strict checkerboard of 4 kinds: no swap can create a 3-run.
+        let kinds = ["ruby", "emerald", "sapphire", "topaz"]
+        var layout: [String] = []
+        for r in 0..<8 {
+            var row = ""
+            for c in 0..<8 {
+                let idx = (r % 2 == 0) ? (c % 2) : ((c + 1) % 2)
+                let name = (r < 4) ? kinds[idx] : kinds[idx + 2]
+                row.append(Character(name.first!))
+            }
+            layout.append(row)
+        }
+        let names: [Character: String] = [
+            "r": "ruby", "e": "emerald", "s": "sapphire", "t": "topaz"
+        ]
+        let board = GameBoard()
+        board.loadGrid(makeGrid(layout, names: names))
+        #expect(board.findValidSwap() == nil)
+    }
+}
